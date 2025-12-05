@@ -1,0 +1,183 @@
+# --- ĐỊNH NGHĨA MÀU SẮC & BIẾN (Để dễ sửa) ---
+#:set color_bg_sky      (0.53, 0.81, 0.98, 1)  # Màu xanh da trời nhạt
+#:set color_btn_start   (1, 0.6, 0.2, 1)       # Màu cam rực rỡ
+#:set color_btn_voice   (1, 0.4, 0.4, 1)       # Màu đỏ hồng
+#:set color_btn_game    (0.2, 0.8, 0.2, 1)     # Màu xanh lá tươi
+#:set color_btn_set     (0.4, 0.6, 1, 1)       # Màu xanh dương
+#:set color_text_dark   (0.2, 0.2, 0.2, 1)     # Màu chữ xám đen dễ đọc
+
+# --- ĐỊNH NGHĨA NÚT BẤM BO TRÒN (Custom Button) ---
+# Trẻ em thích nút giống viên kẹo/bánh quy
+# --- SỬA ĐỔI Ở ĐÂY: Xóa chữ @Button đi ---
+# Vì đã khai báo class bên Python, ta chỉ cần định nghĩa giao diện
+<KiddyButton>:
+    background_color: 0, 0, 0, 0
+    font_size: 20
+    bold: True
+    color: (1, 1, 1, 1)
+    canvas.before:
+        Color:
+            # Code này bây giờ sẽ an toàn vì b_color đã được khởi tạo bên Python
+            rgba: root.b_color if self.state == 'normal' else (root.b_color[0]*0.8, root.b_color[1]*0.8, root.b_color[2]*0.8, 1)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [25,]
+
+# --- QUẢN LÝ MÀN HÌNH ---
+ScreenManager:
+    WelcomeScreen:
+    MainScreen:
+
+# --- 1. MÀN HÌNH CHÀO (PHONG CÁCH HOẠT HÌNH) ---
+<WelcomeScreen>:
+    name: "welcome_screen"
+    
+    canvas.before:
+        Color:
+            rgba: color_bg_sky
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        # Trang trí thêm hình tròn (giả đám mây) nếu muốn
+        Color:
+            rgba: 1, 1, 1, 0.3
+        Ellipse:
+            pos: self.width * 0.1, self.height * 0.6
+            size: 100, 100
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 40
+        spacing: 30
+        
+        # Spacer để đẩy nội dung vào giữa
+        Widget:
+            size_hint_y: 0.1
+
+        Label:
+            text: "ROBOT VUI VẺ"
+            font_size: 48
+            bold: True
+            color: (1, 1, 0, 1) # Màu vàng tươi
+            outline_width: 2
+            outline_color: (0, 0, 0, 1) # Viền đen cho chữ nổi bật
+
+        Label:
+            text: "Cùng chơi và học nhé!"
+            font_size: 24
+            color: color_text_dark
+            size_hint_y: 0.2
+
+        # Spacer
+        Widget:
+            size_hint_y: 0.1
+
+        KiddyButton:
+            text: "BẮT ĐẦU CHƠI"
+            size_hint: 0.8, None  # Chiếm 80% chiều ngang
+            height: 90            # Nút cao, dễ bấm
+            pos_hint: {'center_x': 0.5}
+            b_color: color_btn_start
+            font_size: 30
+            on_release: 
+                root.manager.transition.direction = 'left'
+                root.manager.current = "chat_screen"
+
+        Widget:
+            size_hint_y: 0.3
+
+# --- 2. MÀN HÌNH CHÍNH (GIAO DIỆN TRÒ CHUYỆN) ---
+<MainScreen>:
+    name: "chat_screen"
+    
+    BoxLayout:
+        orientation: 'vertical'
+        # Thêm padding màu nền cho toàn màn hình
+        canvas.before:
+            Color:
+                rgba: (0.95, 0.95, 0.9, 1) # Màu kem nhạt (dịu mắt)
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        # --- Header (Thanh tiêu đề) ---
+        BoxLayout:
+            size_hint_y: None
+            height: 100  # <--- [1] Tăng chiều cao thanh bar lên 100 (Cũ là 60)
+            padding: [15, 10] # Tăng khoảng cách đệm để nút không sát lề
+            spacing: 20       # Khoảng cách giữa nút và chữ tiêu đề
+            
+            canvas.before:
+                Color:
+                    rgba: color_bg_sky
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [0, 0, 30, 30] # Bo tròn góc dưới mạnh hơn (30px)
+
+            KiddyButton:
+                text: "Quay lại" # Thêm dấu mũi tên cho sinh động
+                size_hint_x: None
+                width: 140         # <--- [2] Tăng chiều rộng nút lên 140 (Cũ là 50)
+                font_size: 22      # Chữ trong nút to lên một chút
+                b_color: (1, 1, 1, 0.5)
+                on_release: 
+                    root.manager.transition.direction = 'right'
+                    root.manager.current = "welcome_screen"
+            
+            Label:
+                text: "Góc Của Bé"
+                font_size: 32      # <--- [3] Tăng cỡ chữ tiêu đề lên 32 cho cân đối
+                bold: True
+                color: (1, 1, 1, 1)
+                halign: 'center'
+                valign: 'middle'
+                # Dòng dưới để căn giữa text chuẩn xác hơn trong BoxLayout
+                text_size: self.size
+
+        # --- Khu vực Chat (Giống quyển vở hoặc khung chat bong bóng) ---
+        ScrollView:
+            size_hint_y: 0.75
+            canvas.before:
+                Color:
+                    rgba: (1, 1, 1, 1) # Nền trắng khu chat
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [20,]
+            
+            Label:
+                id: chat_log
+                text: "Bot: Xin chào các bạn! \n Các bạn muốn chơi gì nào?"
+                font_size: root.chat_font_size  # Chữ to hơn cho bé dễ đọc
+                color: (0.2, 0.2, 0.3, 1)
+                size_hint_y: None
+                height: self.texture_size[1] + 20 # Cộng thêm khoảng trống
+                text_size: self.width * 0.95, None # Padding text 5%
+                halign: 'left'
+                valign: 'top'
+                padding: [15, 15] # Padding trong Label
+
+        # --- Thanh công cụ (Nút bấm to, màu sắc phân biệt) ---
+        BoxLayout:
+            size_hint_y: None
+            height: 100  # Khu vực nút cao lên
+            orientation: 'horizontal'
+            spacing: 15
+            padding: [10, 10, 10, 10]
+
+            KiddyButton:
+                text: "Nói"
+                b_color: color_btn_voice
+                on_press: root.on_voice_button_press()
+
+            KiddyButton:
+                text: "Game"
+                b_color: color_btn_game
+                on_press: root.show_games()
+
+            KiddyButton:
+                text: "Cài đặt"
+                b_color: color_btn_set
+                on_press: root.open_settings()
