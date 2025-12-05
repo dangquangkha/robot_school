@@ -86,43 +86,83 @@ class SettingsPopup(Popup):
             self.main_screen.chat_font_size -= 2
             self.lbl_info.text = str(int(self.main_screen.chat_font_size))
 
+# --- CLASS MỚI: Danh sách game (Giao diện Kids UI) ---
 class GameListPopup(Popup):
     def __init__(self, game_list, callback_function, **kwargs):
         super().__init__(**kwargs)
-        self.title = "Danh sách trò chơi"
-        self.size_hint = (0.9, 0.8) # Rộng 90%, cao 80% màn hình
+        self.title = " KHO GAME CỦA BẠN "
+        self.title_size = 28
+        self.title_align = 'center'
+        self.size_hint = (0.9, 0.85) # Popup to, chiếm 90% màn hình
+        self.separator_color = [1, 1, 1, 0] # Ẩn đường kẻ mặc định
         
-        # 1. Tạo vùng chứa có thanh cuộn (ScrollView)
-        scroll = ScrollView()
-        
-        # 2. Tạo lưới chứa các nút (GridLayout)
-        # cols=1 nghĩa là xếp theo 1 cột dọc
-        # size_hint_y=None để lưới có thể dài ra tùy ý theo số lượng nút
-        layout = GridLayout(cols=2, spacing=10, size_hint_y=None, padding=10)
-        layout.bind(minimum_height=layout.setter('height'))
+        # 1. Layout chính (Nền trắng kem)
+        root_layout = BoxLayout(orientation='vertical', padding=15, spacing=15)
+        # Vẽ nền màu trắng kem cho nội dung popup
+        with root_layout.canvas.before:
+            from kivy.graphics import Color, RoundedRectangle
+            Color(0.95, 0.95, 0.9, 1) # Màu kem nhạt
+            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[20,])
+        # Cập nhật hình nền khi popup thay đổi kích thước
+        root_layout.bind(pos=self.update_rect, size=self.update_rect)
 
-        # 3. Dùng vòng lặp để tạo nút cho từng game
-        for game_name in game_list:
-            btn = Button(
-                text=game_name, 
+        # 2. Vùng cuộn (ScrollView) chứa các nút game
+        scroll = ScrollView(size_hint_y=0.85) # Chiếm 85% chiều cao
+        
+        # Lưới chứa nút (1 cột để nút to và dài)
+        grid = GridLayout(cols=1, spacing=20, size_hint_y=None, padding=[10, 10])
+        grid.bind(minimum_height=grid.setter('height'))
+
+        # Danh sách màu sắc để tô luân phiên cho đẹp (Cam, Xanh Lá, Xanh Dương, Hồng)
+        rainbow_colors = [
+            [1, 0.6, 0.2, 1],   # Cam
+            [0.2, 0.8, 0.2, 1], # Xanh lá
+            [0.4, 0.6, 1, 1],   # Xanh dương
+            [1, 0.4, 0.7, 1]    # Hồng
+        ]
+
+        # 3. Tạo nút cho từng game
+        for index, game_name in enumerate(game_list):
+            # Chọn màu dựa theo thứ tự
+            color = rainbow_colors[index % len(rainbow_colors)]
+            
+            # Dùng KiddyButton thay vì Button thường
+            btn = KiddyButton(
+                text=game_name.upper(), # Chữ in hoa cho đẹp
                 size_hint_y=None, 
-                height=80, # Chiều cao mỗi nút
-                background_color=(0, 1, 0.5, 1) # Màu xanh nhẹ
+                height=100,             # Nút cao 100px (Rất dễ bấm)
+                font_size=24
             )
-            # Gắn sự kiện: Khi bấm nút -> Gọi hàm chọn game
-            # partial giúp truyền tên game cụ thể vào hàm
+            btn.b_color = color # Gán màu sắc
+            
+            # Gán sự kiện bấm
             btn.bind(on_press=partial(self.on_game_btn_click, game_name, callback_function))
             
-            layout.add_widget(btn)
+            grid.add_widget(btn)
 
-        # Đóng gói giao diện
-        scroll.add_widget(layout)
-        self.content = scroll
+        scroll.add_widget(grid)
+        root_layout.add_widget(scroll)
+
+        # 4. Nút Đóng (Màu đỏ) ở dưới cùng
+        close_btn = KiddyButton(
+            text="Đóng lại",
+            size_hint_y=None,
+            height=80
+        )
+        close_btn.b_color = [1, 0.3, 0.3, 1] # Màu đỏ
+        close_btn.bind(on_press=self.dismiss)
+        
+        root_layout.add_widget(close_btn)
+
+        self.content = root_layout
+
+    def update_rect(self, instance, value):
+        # Hàm cập nhật nền khi resize
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
 
     def on_game_btn_click(self, game_name, callback, instance):
-        # Đóng popup trước
         self.dismiss()
-        # Gọi hàm xử lý mở game bên MainScreen
         callback(game_name)
 
 class MainScreen(Screen):
