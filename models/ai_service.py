@@ -127,7 +127,7 @@ class AIService:
         ]
 
         system_prompt = f"""
-        Bạn là Robot Vui Vẻ tại Game Center. Danh sách game: {available_games}.
+        Bạn là Robot Trường Học. Danh sách game: {available_games}.
         
         QUY TẮC:
         1. Nếu người dùng muốn chơi game -> Trả về JSON: {{"action": "play", "game": "tên_game"}}.
