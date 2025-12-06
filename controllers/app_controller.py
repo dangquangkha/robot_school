@@ -200,7 +200,7 @@ class MainScreen(Screen):
                 # 2. Tăng thời gian chờ lên 50s giống file testv4.py
                 # timeout: thời gian chờ bắt đầu nói
                 # phrase_time_limit: thời gian tối đa cho một câu nói
-                audio = self.recognizer.listen(source, timeout=50, phrase_time_limit=10)
+                audio = self.recognizer.listen(source, timeout=150, phrase_time_limit=60)
                 
                 Clock.schedule_once(lambda dt: self.update_chat_log("Hệ thống: ⏳ Đang xử lý..."))
                 
