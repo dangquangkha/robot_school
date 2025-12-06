@@ -174,16 +174,46 @@ class MainScreen(Screen):
         self.ai_service = AIService()
         self.game_manager = GameManager()
         self.recognizer = sr.Recognizer()
+        self.has_greeted = False
 
     def update_chat_log(self, message):
         # Cập nhật UI an toàn từ luồng khác
         self.ids.chat_log.text += f"\n\n{message}"
+        Clock.schedule_once(self.scroll_to_bottom, 0.1)
+    
+    def scroll_to_bottom(self, dt):
+        try:
+            # In ra danh sách tất cả ID mà Python tìm thấy
+            print(f"DEBUG IDS: {self.ids.keys()}") 
+            
+            if 'chat_scroller' in self.ids:
+                self.ids.chat_scroller.scroll_y = 0
+            else:
+                print("⚠️ CẢNH BÁO: Không tìm thấy 'chat_scroller' trong danh sách ID trên!")
+                
+        except Exception as e:
+            print(f"Lỗi cuộn trang: {e}")
 
     def on_voice_button_press(self):
         # Chạy ghi âm ở luồng riêng
         threading.Thread(target=self.process_voice).start()
 
-# --- HÀM MỞ CÀI ĐẶT ---
+    def on_enter(self):
+        """Hàm này tự động chạy khi màn hình Chat hiện lên"""
+        if not self.has_greeted:
+            # Câu chào bạn muốn Robot nói
+            greeting_text = "Xin chào các bạn! Các bạn muốn chơi gì nào?"
+            
+            # Cập nhật chữ lên màn hình (để khớp với lời nói)
+            self.ids.chat_log.text = f"Bot: {greeting_text}"
+            
+            # Gọi hàm nói (chạy trong luồng riêng để không đơ ứng dụng)
+            threading.Thread(target=self.ai_service.speak, args=(greeting_text,)).start()
+            
+            # Đánh dấu là đã chào rồi
+            self.has_greeted = True
+
+    # --- HÀM MỞ CÀI ĐẶT ---
     def open_settings(self):
         # Truyền 'self' (màn hình chính) vào popup để popup chỉnh được biến font_size
         popup = SettingsPopup(main_screen=self)
@@ -201,7 +231,7 @@ class MainScreen(Screen):
                 # 2. Tăng thời gian chờ lên 50s giống file testv4.py
                 # timeout: thời gian chờ bắt đầu nói
                 # phrase_time_limit: thời gian tối đa cho một câu nói
-                audio = self.recognizer.listen(source, timeout=150, phrase_time_limit=60)
+                audio = self.recognizer.listen(source, timeout=150, phrase_time_limit=120)
                 
                 Clock.schedule_once(lambda dt: self.update_chat_log("Hệ thống: ⏳ Đang xử lý..."))
                 
@@ -294,7 +324,7 @@ class KiddyButton(Button):
         try:
             if not pygame.mixer.get_init(): pygame.mixer.init()
             self.click_sound = pygame.mixer.Sound("sounds/UI_button.wav")
-            self.click_sound.set_volume(0.5)
+            self.click_sound.set_volume(0.8)
         except:
             self.click_sound = None
 
