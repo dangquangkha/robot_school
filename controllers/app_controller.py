@@ -13,6 +13,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import ListProperty
 
 import threading
+import pygame
 import speech_recognition as sr
 
 # Import Models
@@ -285,8 +286,25 @@ class MainScreen(Screen):
 
 # Định nghĩa nút bấm trong Python để tránh lỗi NoneType
 class KiddyButton(Button):
-    # Khai báo biến b_color là ListProperty với màu mặc định là trắng
     b_color = ListProperty([1, 1, 1, 1])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Pre-load âm thanh click để không bị trễ khi bấm
+        try:
+            if not pygame.mixer.get_init(): pygame.mixer.init()
+            self.click_sound = pygame.mixer.Sound("sounds/UI_button.wav")
+            self.click_sound.set_volume(0.5)
+        except:
+            self.click_sound = None
+
+    def on_press(self):
+        # 1. Phát âm thanh
+        if self.click_sound:
+            self.click_sound.play()
+        
+        # 2. Gọi logic mặc định của nút bấm (quan trọng)
+        super().on_press()
 
 # --- CLASS MỚI: Màn hình chào ---
 class WelcomeScreen(Screen):
