@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .vscode/
 venv/
+bot_speak.mp3
