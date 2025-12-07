@@ -1,4 +1,5 @@
 from functools import partial
+import time
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout  # <--- Thêm cái này
@@ -9,7 +10,7 @@ from kivy.clock import Clock
 from kivy.uix.popup import Popup # <--- Thêm dòng này
 from kivy.properties import NumericProperty # <--- Thêm dòng này
 from kivy.uix.screenmanager import ScreenManager, Screen
-
+from kivy.core.window import Window
 from kivy.properties import ListProperty
 
 import threading
@@ -175,7 +176,43 @@ class MainScreen(Screen):
         self.game_manager = GameManager()
         self.recognizer = sr.Recognizer()
         self.has_greeted = False
+        self.is_listening = False
+    
+    # --- HÀM MỚI: Bật/Tắt chế độ nghe liên tục ---
+    def toggle_voice_loop(self):
+        if self.is_listening:
+            # Nếu đang nghe -> Bấm để Dừng
+            self.is_listening = False
+            self.ids.btn_voice.text = "Đang dừng..."
+            self.ids.btn_voice.b_color = [1, 0.4, 0.4, 1] # Màu đỏ nhạt
+        else:
+            # Nếu đang dừng -> Bấm để Nghe
+            self.is_listening = True
+            self.ids.btn_voice.text = "DỪNG LẠI"
+            self.ids.btn_voice.b_color = [1, 0, 0, 1] # Màu đỏ đậm
+            
+            # Chạy vòng lặp trong luồng riêng
+            threading.Thread(target=self.run_listening_loop).start()
 
+    def run_listening_loop(self):
+        while self.is_listening:
+
+            if self.ai_service.is_speaking:
+                # Nếu Robot đang nói thì cái tai (Mic) phải nghỉ ngơi
+                print("Bot đang nói, tạm dừng nghe...")
+                time.sleep(0.5) # Đợi 0.5s rồi kiểm tra lại
+                continue # Bỏ qua lượt nghe này, quay lại đầu vòng lặp
+            self.process_voice()
+            # Nghỉ 0.5s giữa các lần nghe để máy đỡ lag
+            time.sleep(1.5)
+        
+        # Khi vòng lặp kết thúc (do bấm dừng), reset lại nút
+        Clock.schedule_once(self.reset_voice_button)
+
+    def reset_voice_button(self, dt):
+        self.ids.btn_voice.text = "Nói (Voice)"
+        self.ids.btn_voice.b_color = [1, 0.4, 0.4, 1] # Trả về màu cũ
+        
     def update_chat_log(self, message):
         # Cập nhật UI an toàn từ luồng khác
         self.ids.chat_log.text += f"\n\n{message}"
@@ -220,18 +257,20 @@ class MainScreen(Screen):
         popup.open()
 
     def process_voice(self):
-        Clock.schedule_once(lambda dt: self.update_chat_log("Hệ thống: 🎧 Đang nghe (nói to lên nhé)..."))
+
+        if not self.is_listening: return
+        Clock.schedule_once(lambda dt: self.update_chat_log("Hệ thống: Đang nghe (nói to lên nhé)..."))
         
         try:
             MIC_ID = 0
             with sr.Microphone(device_index=MIC_ID) as source:
                 # 1. Chỉnh độ nhạy mic (quan trọng)
-                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                self.recognizer.adjust_for_ambient_noise(source, duration=1.5)
                 
                 # 2. Tăng thời gian chờ lên 50s giống file testv4.py
                 # timeout: thời gian chờ bắt đầu nói
                 # phrase_time_limit: thời gian tối đa cho một câu nói
-                audio = self.recognizer.listen(source, timeout=150, phrase_time_limit=120)
+                audio = self.recognizer.listen(source, timeout=120, phrase_time_limit=240)
                 
                 Clock.schedule_once(lambda dt: self.update_chat_log("Hệ thống: ⏳ Đang xử lý..."))
                 
@@ -343,7 +382,8 @@ class WelcomeScreen(Screen):
 # --- SỬA HÀM BUILD CỦA APP ---
 class AIChatVoiceApp(App):
     def build(self):
-        
+
+        Window.fullscreen = 'auto'
         # Load giao diện
         Builder.load_file('views/main_view.kv')
         # Tạo trình quản lý màn hình

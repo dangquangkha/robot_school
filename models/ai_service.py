@@ -15,6 +15,7 @@ class AIService:
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.google_api_key = os.getenv("GOOGLE_API_KEY")
         self.google_cse_id = os.getenv("GOOGLE_CSE_ID")
+        self.is_speaking = False
 
         if not self.api_key:
             print("LỖI: Chưa có OPENAI_API_KEY trong file .env")
@@ -41,7 +42,7 @@ class AIService:
             if not self.api_key:
                 print("Không thể nói vì thiếu API Key.")
                 return
-
+            self.is_speaking = True
             # 1. Gọi API TTS của OpenAI
             with self.client.audio.speech.with_streaming_response.create(
                 model="tts-1",
@@ -66,6 +67,11 @@ class AIService:
 
         except Exception as e:
             print(f"Lỗi phần Text-to-Speech: {str(e)}")
+        finally:
+            self.is_speaking = False
+            # Xoá file tạm
+            if os.path.exists(filename):
+                os.remove(filename)
 
     def search_google_law(self, query):
         """Hàm này gọi Google API để tìm kiếm thông tin"""
@@ -114,7 +120,7 @@ class AIService:
                 "type": "function",
                 "function": {
                     "name": "search_google_law",
-                    "description": "Dùng để tra cứu luật pháp, mức phạt, quy định hiện hành khi bạn không chắc chắn.",
+                    "description": "Dùng để tra cứu luật pháp, quy định an toàn trường học, quyền trẻ em khi cần thông tin chính xác.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -127,8 +133,16 @@ class AIService:
         ]
 
         system_prompt = f"""
-        Bạn là Robot Trường Học. Danh sách game: {available_games}.
-        
+        Bạn là "Người Bạn Đồng Hành" - một trợ lý AI thân thiện và tốt bụng của các bạn nhỏ tại trường học.
+        Danh sách trò chơi giải trí lành mạnh hiện có: {available_games}.
+        NHIỆM VỤ CỦA BẠN:
+        1. Đóng vai một người bạn lớn: Luôn lắng nghe, chia sẻ và đưa ra những lời khuyên bổ ích, hướng thiện.
+        2. Tuyên truyền Đạo đức & Chống bạo lực học đường một cách ngắn gọn:
+        - Giải thích rõ ràng vì sao KHÔNG nên sử dụng bạo lực (gây đau đớn, tổn thương tinh thần, rạn nứt tình bạn, làm buồn lòng cha mẹ thầy cô).
+        - Phân tích hậu quả nghiêm trọng của bạo lực đối với bản thân, gia đình và xã hội.
+        - Khuyến khích các đức tính tốt: Trung thực, dũng cảm, biết ơn, tha thứ và yêu thương.
+        3. Hỗ trợ tra cứu kiến thức: Nếu trẻ hỏi về kiến thức pháp luật, quyền trẻ em, hoặc quy định nhà trường, hãy dùng tool 'search_google_law' để cung cấp thông tin chính xác.
+        4. Giải trí lành mạnh: Nếu trẻ muốn chơi game để thư giãn, hãy giúp trẻ mở game.
         QUY TẮC:
         1. Nếu người dùng muốn chơi game -> Trả về JSON: {{"action": "play", "game": "tên_game"}}.
         2. Nếu cần tra cứu luật -> Hãy GỌI HÀM (Tool Call) search_google_law.
@@ -155,7 +169,8 @@ class AIService:
                 tools=tools,
                 tool_choice="auto", # Để AI tự quyết định có tìm Google hay không
                 # Chưa ép JSON ngay ở bước này, vì AI có thể trả về Tool Call
-                temperature=0.7
+                temperature=0.7,
+                max_tokens=200
             )
             
             response_message = response.choices[0].message

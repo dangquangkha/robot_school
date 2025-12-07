@@ -74,12 +74,14 @@ ScreenManager:
             size_hint_y: 0.1
 
         KiddyButton:
+
             text: "BẮT ĐẦU CHƠI"
             size_hint: 0.8, None  # Chiếm 80% chiều ngang
             height: 90            # Nút cao, dễ bấm
             pos_hint: {'center_x': 0.5}
             b_color: color_btn_start
             font_size: 30
+            
             on_release: 
                 root.manager.transition.direction = 'left'
                 root.manager.current = "chat_screen"
@@ -117,11 +119,13 @@ ScreenManager:
                     radius: [0, 0, 30, 30] # Bo tròn góc dưới mạnh hơn (30px)
 
             KiddyButton:
+
                 text: "Quay lại" # Thêm dấu mũi tên cho sinh động
                 size_hint_x: None
                 width: 140         # <--- [2] Tăng chiều rộng nút lên 140 (Cũ là 50)
                 font_size: 22      # Chữ trong nút to lên một chút
                 b_color: (1, 1, 1, 0.5)
+
                 on_release: 
                     root.manager.transition.direction = 'right'
                     root.manager.current = "welcome_screen"
@@ -169,9 +173,10 @@ ScreenManager:
             padding: [10, 10, 10, 10]
 
             KiddyButton:
+                id: btn_voice
                 text: "Nói"
                 b_color: color_btn_voice
-                on_press: root.on_voice_button_press()
+                on_press: root.toggle_voice_loop()
 
             KiddyButton:
                 text: "Game"

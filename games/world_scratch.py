@@ -1,17 +1,24 @@
 import webbrowser
-import os
+import time
 import sys
 
+# --- CẤU HÌNH LINK SCRATCH ---
+# Link game Scratch của bạn
+SCRATCH_URL = "https://scratch.mit.edu/projects/1248388698/fullscreen/" 
+
 def main():
-    # Lấy đường dẫn tuyệt đối đến file html
-    # Cách này đảm bảo chạy được trên mọi máy tính
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, "gamedeptrai.html")
+    print(f"Đang khởi động trình duyệt để vào game...")
+    print(f"Link: {SCRATCH_URL}")
     
-    print(f"Đang mở game Offline: {file_path}")
+    # Lệnh mở trình duyệt web mặc định của máy tính (Chrome/Edge/Cốc Cốc...)
+    try:
+        webbrowser.open(SCRATCH_URL)
+    except Exception as e:
+        print(f"Lỗi không mở được trình duyệt: {e}")
     
-    # Mở file HTML bằng trình duyệt mặc định
-    webbrowser.open(f"file:///{file_path}")
+    # Chờ 2 giây rồi tắt script này để giải phóng RAM cho App chính
+    # (Trình duyệt web vẫn sẽ giữ nguyên, không bị tắt theo)
+    time.sleep(2)
 
 if __name__ == "__main__":
     main()
