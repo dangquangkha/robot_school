@@ -307,7 +307,10 @@ class MainScreen(Screen):
             Clock.schedule_once(lambda dt: self.update_chat_log(f"Lỗi kết nối Google: {e}"))
             
         except Exception as e:
-            Clock.schedule_once(lambda dt: self.update_chat_log(f"Lỗi nghiêm trọng: {e}"))
+            # [SỬA LẠI ĐOẠN NÀY]
+            # Lưu nội dung lỗi ra một biến riêng (biến này sẽ không bị xóa)
+            error_msg = str(e) 
+            Clock.schedule_once(lambda dt: self.update_chat_log(f"Lỗi nghiêm trọng: {error_msg}"))
 
     def speak_error(self, text):
         threading.Thread(target=self.ai_service.speak, args=(text,)).start()
