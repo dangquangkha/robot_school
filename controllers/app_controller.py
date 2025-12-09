@@ -21,7 +21,6 @@ import speech_recognition as sr
 from models.ai_service import AIService
 from models.game_manager import GameManager
 
-# --- CLASS MỚI: Cửa sổ cài đặt ---
 # --- CLASS MỚI: Cửa sổ cài đặt (Đã sửa giao diện đẹp hơn) ---
 class SettingsPopup(Popup):
     def __init__(self, main_screen, **kwargs):
@@ -255,10 +254,25 @@ class MainScreen(Screen):
         # Truyền 'self' (màn hình chính) vào popup để popup chỉnh được biến font_size
         popup = SettingsPopup(main_screen=self)
         popup.open()
+    
+    
+    # Hàm đổi biểu cảm (chạy trên luồng chính để không lỗi giao diện)
+    def set_face(self, state):
+        map_face = {
+            'idle': 'images/idle.png',          # Ảnh tĩnh
+            'listen': 'images/listening.gif',   # Ảnh động nghe
+            'talk': 'images/talking.gif'        # Ảnh động nói
+        }
+        
+        if state in map_face:
+            Clock.schedule_once(lambda dt: setattr(self.ids.robot_face, 'source', map_face[state]))
+            # Reset lại tốc độ GIF
+            Clock.schedule_once(lambda dt: setattr(self.ids.robot_face, 'anim_delay', 0.1))
 
     def process_voice(self):
 
         if not self.is_listening: return
+        self.set_face('listen')
         Clock.schedule_once(lambda dt: self.update_chat_log("Hệ thống: Đang nghe (nói to lên nhé)..."))
         
         try:
@@ -282,12 +296,13 @@ class MainScreen(Screen):
         except sr.WaitTimeoutError:
             Clock.schedule_once(lambda dt: self.update_chat_log("Lỗi: Hết thời gian chờ (Timeout). Hãy thử nói nhanh hơn hoặc to hơn."))
             # Phát loa thông báo lỗi để bạn biết
-            self.speak_error("Tôi không nghe thấy gì cả.")
+            #self.speak_error("Tôi không nghe thấy gì cả.")
+            pass
             
         except sr.UnknownValueError:
             Clock.schedule_once(lambda dt: self.update_chat_log("Lỗi: Không nhận dạng được giọng nói."))
-            self.speak_error("Tôi không nghe rõ bạn nói gì.")
-            
+            #self.speak_error("Tôi không nghe rõ bạn nói gì.")
+            pass
         except sr.RequestError as e:
             Clock.schedule_once(lambda dt: self.update_chat_log(f"Lỗi kết nối Google: {e}"))
             
@@ -320,8 +335,18 @@ class MainScreen(Screen):
             bot_reply = response.get("content")
             Clock.schedule_once(lambda dt: self.update_chat_log(f"Bot: {bot_reply}"))
             
-            # Bot nói câu trả lời
-            threading.Thread(target=self.ai_service.speak, args=(bot_reply,)).start()
+            def speak_with_face():
+                # 1. Đổi mặt sang nói
+                self.set_face('talk')
+                
+                # 2. Phát âm thanh
+                self.ai_service.speak(bot_reply)
+                
+                # 3. Nói xong -> Về mặt bình thường
+                self.set_face('idle')
+
+            # Chạy luồng
+            threading.Thread(target=speak_with_face).start()
 
     def show_games(self):
         # 1. Lấy danh sách game từ GameManager
@@ -352,6 +377,19 @@ class MainScreen(Screen):
         
         if not success:
              self.update_chat_log(f"Lỗi: Không thể khởi động file {game_name}.")
+    
+    # --- HÀM MỚI: QUAY VỀ MÀN HÌNH CHÀO ---
+    def go_back_home(self):
+        # 1. Quan trọng: Tắt chế độ nghe nếu đang bật để tránh lỗi ngầm
+        if self.is_listening:
+            self.is_listening = False
+            self.ids.btn_voice.text = "Nói (Voice)"
+            self.ids.btn_voice.b_color = [1, 0.4, 0.4, 1]
+
+        # 2. Chuyển màn hình về trang chủ
+        # Hiệu ứng trượt sang phải (right) tạo cảm giác "quay lại"
+        self.manager.transition.direction = 'right'
+        self.manager.current = 'welcome_screen'
 
 # Định nghĩa nút bấm trong Python để tránh lỗi NoneType
 class KiddyButton(Button):
@@ -375,9 +413,31 @@ class KiddyButton(Button):
         # 2. Gọi logic mặc định của nút bấm (quan trọng)
         super().on_press()
 
-# --- CLASS MỚI: Màn hình chào ---
+# --- SỬA LẠI CLASS WelcomeScreen ---
 class WelcomeScreen(Screen):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Khởi tạo GameManager riêng cho màn hình này
+        self.game_manager = GameManager()
+
+    def show_games_welcome(self):
+        """Hàm này được gọi khi bấm nút Game ở màn hình chào"""
+        # 1. Lấy danh sách game
+        games = self.game_manager.get_game_list()
+        
+        if not games:
+            print("Không tìm thấy game nào!") # Hoặc bạn có thể hiện thông báo
+            return
+
+        # 2. Mở Popup danh sách game
+        # Truyền vào hàm callback là self.launch_game_direct
+        popup = GameListPopup(games, self.launch_game_direct)
+        popup.open()
+
+    def launch_game_direct(self, game_name):
+        """Hàm chạy game trực tiếp"""
+        print(f"Đang mở game {game_name} từ màn hình chào...")
+        self.game_manager.launch_game(game_name)
 
 # --- SỬA HÀM BUILD CỦA APP ---
 class AIChatVoiceApp(App):

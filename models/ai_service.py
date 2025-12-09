@@ -5,6 +5,7 @@ import json
 import pygame
 import time
 import requests
+import io
 
 # Load biến môi trường
 load_dotenv()
@@ -31,47 +32,49 @@ class AIService:
             print(f"Lỗi khởi tạo Pygame Mixer: {e}")
 
     def speak(self, text):
-        """Chuyển văn bản thành giọng nói và phát bằng Pygame"""
+        """Chuyển văn bản thành giọng nói và phát bằng Pygame (Dùng RAM)"""
         if not text:
             return
 
-        print(f"Bot đang nói: {text}") # In ra console để debug
-        filename = "bot_speak.mp3"
+        print(f"Bot đang nói: {text}")
         
         try:
-            if not self.api_key:
-                print("Không thể nói vì thiếu API Key.")
-                return
+            # Bật cờ đang nói để ngắt mic
             self.is_speaking = True
-            # 1. Gọi API TTS của OpenAI
-            with self.client.audio.speech.with_streaming_response.create(
+            
+            # 1. Gọi API và lấy dữ liệu âm thanh trực tiếp (Binary)
+            # Không dùng stream_to_file nữa mà lấy content
+            response = self.client.audio.speech.create(
                 model="tts-1",
                 voice="alloy",
                 input=text
-            ) as response:
-                response.stream_to_file(filename)
+            )
+            
+            # 2. Chuyển dữ liệu Binary vào RAM (tạo file ảo)
+            audio_data = io.BytesIO(response.content)
 
-            # 2. Phát âm thanh bằng Pygame
+            # 3. Phát âm thanh từ RAM
             if not pygame.mixer.get_init():
                 pygame.mixer.init()
                 
-            pygame.mixer.music.load(filename)
+            # Pygame có thể đọc file từ RAM y hệt như file thật
+            pygame.mixer.music.load(audio_data)
             pygame.mixer.music.play()
 
             # Chờ phát xong
             while pygame.mixer.music.get_busy():
                 pygame.time.Clock().tick(10)
 
-            # Giải phóng file
+            # Giải phóng tài nguyên nhạc
             pygame.mixer.music.unload()
 
         except Exception as e:
             print(f"Lỗi phần Text-to-Speech: {str(e)}")
+        
         finally:
+            # Tắt cờ để Mic nghe lại
             self.is_speaking = False
-            # Xoá file tạm
-            if os.path.exists(filename):
-                os.remove(filename)
+            # KHÔNG CẦN os.remove VÌ KHÔNG CÓ FILE NÀO ĐƯỢC TẠO RA TRÊN Ổ CỨNG
 
     def search_google_law(self, query):
         """Hàm này gọi Google API để tìm kiếm thông tin"""

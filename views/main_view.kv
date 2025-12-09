@@ -56,7 +56,7 @@ ScreenManager:
             size_hint_y: 0.1
 
         Label:
-            text: "ROBOT VUI VẺ"
+            text: "ROBOT TRƯỜNG HỌC"
             font_size: 48
             bold: True
             color: (1, 1, 0, 1) # Màu vàng tươi
@@ -75,13 +75,33 @@ ScreenManager:
 
         KiddyButton:
 
-            text: "BẮT ĐẦU CHƠI"
+            text: "BẮT ĐẦU CHAT"
             size_hint: 0.8, None  # Chiếm 80% chiều ngang
             height: 90            # Nút cao, dễ bấm
             pos_hint: {'center_x': 0.5}
             b_color: color_btn_start
             font_size: 30
+
+            # QUAN TRỌNG: Đặt on_release ở đây, thụt vào trong KiddyButton
+            on_release: 
+                root.manager.transition.direction = 'left'
+                root.manager.current = "chat_screen"
             
+            # --- THÊM NÚT NÀY VÀO ĐÂY ---
+        Widget:
+            size_hint_y: None
+            height: 20  # Tạo khoảng cách nhỏ giữa 2 nút
+
+        KiddyButton:
+            text: "KHO GAME GIẢI TRÍ"
+            size_hint: 0.8, None
+            height: 90
+            pos_hint: {'center_x': 0.5}
+            b_color: color_btn_game  # Dùng màu xanh lá (đã định nghĩa ở đầu file)
+            font_size: 30
+            # Gọi hàm mới chúng ta vừa viết bên Python
+            on_release: root.show_games_welcome()
+
             on_release: 
                 root.manager.transition.direction = 'left'
                 root.manager.current = "chat_screen"
@@ -89,101 +109,105 @@ ScreenManager:
         Widget:
             size_hint_y: 0.3
 
-# --- 2. MÀN HÌNH CHÍNH (GIAO DIỆN TRÒ CHUYỆN) ---
 <MainScreen>:
     name: "chat_screen"
-    
-    BoxLayout:
-        orientation: 'vertical'
-        # Thêm padding màu nền cho toàn màn hình
+
+    # 1. BỐ CỤC XẾP CHỒNG
+    FloatLayout:
+        
+        # --- LỚP 1: HÌNH NỀN (Màu trắng hoặc ảnh lớp học) ---
         canvas.before:
             Color:
-                rgba: (0.95, 0.95, 0.9, 1) # Màu kem nhạt (dịu mắt)
+                rgba: 1, 1, 1, 1 
             Rectangle:
                 pos: self.pos
                 size: self.size
+                source: 'images/Classroom_Day.png' # Bỏ dấu # nếu có ảnh nền
 
-        # --- Header (Thanh tiêu đề) ---
+        # --- LỚP 2: NHÂN VẬT AI (Đứng bên trái) ---
+        Image:
+            id: robot_face
+            source: 'images/idle.png' # Ảnh mặc định
+            size_hint: 0.5, 0.9       # Chiếm 50% bề ngang, 90% chiều cao
+            pos_hint: {'x': 0, 'bottom': 1} # Căn góc trái dưới
+            allow_stretch: True
+            keep_ratio: True
+            anim_delay: 0.1           # Để chạy được GIF
+
+        # --- LỚP 3: KHUNG CHAT STREAM (Bên phải) ---
         BoxLayout:
-            size_hint_y: None
-            height: 100  # <--- [1] Tăng chiều cao thanh bar lên 100 (Cũ là 60)
-            padding: [15, 10] # Tăng khoảng cách đệm để nút không sát lề
-            spacing: 20       # Khoảng cách giữa nút và chữ tiêu đề
+            orientation: 'vertical'
+            size_hint: 0.45, 0.9      # Chiếm 45% bề ngang
+            pos_hint: {'right': 0.98, 'center_y': 0.5} # Căn lề phải
+            padding: 15
+            spacing: 10
             
+            # Vẽ nền đen mờ (Giống khung chat game/stream)
             canvas.before:
                 Color:
-                    rgba: color_bg_sky
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [0, 0, 30, 30] # Bo tròn góc dưới mạnh hơn (30px)
-
-            KiddyButton:
-
-                text: "Quay lại" # Thêm dấu mũi tên cho sinh động
-                size_hint_x: None
-                width: 140         # <--- [2] Tăng chiều rộng nút lên 140 (Cũ là 50)
-                font_size: 22      # Chữ trong nút to lên một chút
-                b_color: (1, 1, 1, 0.5)
-
-                on_release: 
-                    root.manager.transition.direction = 'right'
-                    root.manager.current = "welcome_screen"
-            
-            Label:
-                text: "Góc Của Bé"
-                font_size: 32      # <--- [3] Tăng cỡ chữ tiêu đề lên 32 cho cân đối
-                bold: True
-                color: (1, 1, 1, 1)
-                halign: 'center'
-                valign: 'middle'
-                # Dòng dưới để căn giữa text chuẩn xác hơn trong BoxLayout
-                text_size: self.size
-
-        # --- Khu vực Chat (Giống quyển vở hoặc khung chat bong bóng) ---
-        ScrollView:
-            size_hint_y: 0.75
-            id: chat_scroller
-            canvas.before:
-                Color:
-                    rgba: (1, 1, 1, 1) # Nền trắng khu chat
+                    rgba: 0, 0, 0, 0.6 # Màu đen, độ trong suốt 60%
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
                     radius: [20,]
-            
+
+            # Tiêu đề
             Label:
-                id: chat_log
-                text: "Bot: Xin chào các bạn! \n Các bạn muốn chơi gì nào?"
-                font_size: root.chat_font_size  # Chữ to hơn cho bé dễ đọc
-                color: (0.2, 0.2, 0.3, 1)
+                text: "LIVE CHAT"
+                font_size: 20
+                bold: True
+                color: 1, 0, 0, 1 # Chữ đỏ
                 size_hint_y: None
-                height: self.texture_size[1] + 20 # Cộng thêm khoảng trống
-                text_size: self.width * 0.95, None # Padding text 5%
+                height: 30
                 halign: 'left'
-                valign: 'top'
-                padding: [15, 15] # Padding trong Label
+                text_size: self.size
 
-        # --- Thanh công cụ (Nút bấm to, màu sắc phân biệt) ---
-        BoxLayout:
-            size_hint_y: None
-            height: 100  # Khu vực nút cao lên
-            orientation: 'horizontal'
-            spacing: 15
-            padding: [10, 10, 10, 10]
+            # Nội dung chat (Trôi lên)
+            ScrollView:
+                id: chat_scroller
+                size_hint_y: 1
+                
+                Label:
+                    id: chat_log
+                    text: "Hệ thống: Đã kết nối..."
+                    font_size: 18
+                    color: 1, 1, 1, 1 # Chữ trắng
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    text_size: self.width, None
+                    valign: 'bottom'
+                    markup: True
 
-            KiddyButton:
-                id: btn_voice
-                text: "Nói"
-                b_color: color_btn_voice
-                on_press: root.toggle_voice_loop()
+            # Nút bấm (Thu gọn)
+            BoxLayout:
+                size_hint_y: None
+                height: 50
+                spacing: 10
 
-            KiddyButton:
-                text: "Game"
-                b_color: color_btn_game
-                on_press: root.show_games()
+                # --- THÊM NÚT QUAY LẠI Ở ĐÂY ---
+                KiddyButton:
+                    text: "Quay lại"
+                    font_size: 16
+                    # Màu tím (Purple) cho nút thoát
+                    b_color: (0.6, 0.4, 0.8, 1)
+                    # Gọi hàm Python vừa viết
+                    on_press: root.go_back_home()
 
-            KiddyButton:
-                text: "Cài đặt"
-                b_color: color_btn_set
-                on_press: root.open_settings()
+                KiddyButton:
+                    id: btn_voice
+                    text: "Nói"
+                    font_size: 16
+                    b_color: color_btn_voice
+                    on_press: root.toggle_voice_loop()
+
+                KiddyButton:
+                    text: "Game"
+                    font_size: 16
+                    b_color: color_btn_game
+                    on_press: root.show_games()
+
+                KiddyButton:
+                    text: "Cài đặt"
+                    font_size: 16
+                    b_color: color_btn_set
+                    on_press: root.open_settings()
