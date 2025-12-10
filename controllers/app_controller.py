@@ -195,17 +195,33 @@ class MainScreen(Screen):
 
     def run_listening_loop(self):
         while self.is_listening:
-
+            
+            # --- 1. CHẶN LUỒNG: Nếu Bot đang nói, tuyệt đối không nghe ---
             if self.ai_service.is_speaking:
-                # Nếu Robot đang nói thì cái tai (Mic) phải nghỉ ngơi
                 print("Bot đang nói, tạm dừng nghe...")
+                
+                # Kỹ thuật "Khóa": Ép giao diện về trạng thái tĩnh (idle)
+                # để đảm bảo mặt không bị kẹt ở biểu cảm "đang nghe"
+                # (Lưu ý: set_face đã được viết lại ở bước trước để an toàn với luồng)
+                try:
+                    # Kiểm tra nhanh: Nếu đang hiện mặt "nghe" thì mới cần reset
+                    # (Dùng try-except để tránh lỗi nếu chưa kịp load ID)
+                    if self.ids.face_listen.opacity == 1:
+                        self.set_face('idle')
+                except:
+                    # Nếu lỡ có lỗi truy cập ID từ luồng phụ thì cứ set thẳng luôn cho an toàn
+                    self.set_face('idle')
+                
                 time.sleep(0.5) # Đợi 0.5s rồi kiểm tra lại
-                continue # Bỏ qua lượt nghe này, quay lại đầu vòng lặp
+                continue # Bỏ qua lượt này, quay lại đầu vòng lặp
+            
+            # --- 2. NẾU BOT IM LẶNG THÌ MỚI BẮT ĐẦU NGHE ---
             self.process_voice()
-            # Nghỉ 0.5s giữa các lần nghe để máy đỡ lag
-            time.sleep(1.5)
+            
+            # Nghỉ 1 giây giữa các lần nghe để giảm tải cho CPU và tránh nóng máy
+            time.sleep(1.0)
         
-        # Khi vòng lặp kết thúc (do bấm dừng), reset lại nút
+        # Khi vòng lặp kết thúc (do bấm nút Dừng), reset lại giao diện nút
         Clock.schedule_once(self.reset_voice_button)
 
     def reset_voice_button(self, dt):
@@ -256,18 +272,30 @@ class MainScreen(Screen):
         popup.open()
     
     
-    # Hàm đổi biểu cảm (chạy trên luồng chính để không lỗi giao diện)
+    # Hàm đổi biểu cảm mới (Sử dụng Opacity để mượt mà, không giật)
     def set_face(self, state):
-        map_face = {
-            'idle': 'images/idle.png',          # Ảnh tĩnh
-            'listen': 'images/listening.gif',   # Ảnh động nghe
-            'talk': 'images/talking.gif'        # Ảnh động nói
-        }
-        
-        if state in map_face:
-            Clock.schedule_once(lambda dt: setattr(self.ids.robot_face, 'source', map_face[state]))
-            # Reset lại tốc độ GIF
-            Clock.schedule_once(lambda dt: setattr(self.ids.robot_face, 'anim_delay', 0.1))
+        def update_ui(dt):
+            # 1. Đầu tiên: Ẩn tất cả các mặt đi
+            self.ids.face_idle.opacity = 0
+            self.ids.face_listen.opacity = 0
+            self.ids.face_talk.opacity = 0
+            
+            # 2. Sau đó: Chỉ hiện mặt cần thiết
+            if state == 'idle':
+                self.ids.face_idle.opacity = 1
+                
+            elif state == 'listen':
+                self.ids.face_listen.opacity = 1
+                # Mẹo: Reset lại delay để GIF chạy mượt ngay từ đầu
+                self.ids.face_listen.anim_delay = 0.1 
+                
+            elif state == 'talk':
+                self.ids.face_talk.opacity = 1
+                # Mẹo: Reset lại delay để GIF chạy mượt ngay từ đầu
+                self.ids.face_talk.anim_delay = 0.1
+
+        # Chạy lệnh update_ui trên luồng chính của giao diện
+        Clock.schedule_once(update_ui)
 
     def process_voice(self):
 
@@ -339,13 +367,17 @@ class MainScreen(Screen):
             Clock.schedule_once(lambda dt: self.update_chat_log(f"Bot: {bot_reply}"))
             
             def speak_with_face():
-                # 1. Đổi mặt sang nói
-                self.set_face('talk')
+                # 1. Định nghĩa hàm callback: Chỉ đổi mặt khi nhạc bắt đầu chạy
+                def on_sound_start():
+                    self.set_face('talk') # Lúc này mới chuyển sang mặt nói
+
+                # 2. Đặt mặt về trạng thái chờ (trong lúc đang tải âm thanh từ API)
+                self.set_face('idle') 
                 
-                # 2. Phát âm thanh
-                self.ai_service.speak(bot_reply)
+                # 3. Gọi hàm speak và TRUYỀN HÀM CALLBACK VÀO
+                self.ai_service.speak(bot_reply, on_play_callback=on_sound_start)
                 
-                # 3. Nói xong -> Về mặt bình thường
+                # 4. Sau khi nói xong -> Về mặt bình thường
                 self.set_face('idle')
 
             # Chạy luồng

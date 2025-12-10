@@ -124,15 +124,36 @@ ScreenManager:
                 size: self.size
                 source: 'images/Classroom_Day.png' # Bỏ dấu # nếu có ảnh nền
 
-        # --- LỚP 2: NHÂN VẬT AI (Đứng bên trái) ---
-        Image:
-            id: robot_face
-            source: 'images/idle.png' # Ảnh mặc định
-            size_hint: 0.5, 0.9       # Chiếm 50% bề ngang, 90% chiều cao
-            pos_hint: {'x': 0, 'bottom': 1} # Căn góc trái dưới
-            allow_stretch: True
-            keep_ratio: True
-            anim_delay: 0.1           # Để chạy được GIF
+        # --- LỚP 2: NHÂN VẬT AI (Đã sửa lại dùng Opacity) ---
+        FloatLayout:
+            size_hint: 0.5, 0.9
+            pos_hint: {'x': 0, 'bottom': 1}
+
+            # 1. Ảnh tĩnh (Mặc định hiện)
+            Image:
+                id: face_idle
+                source: 'images/idle.png'
+                opacity: 1  # Hiện
+                allow_stretch: True
+                keep_ratio: True
+
+            # 2. Ảnh nghe (Mặc định ẩn)
+            Image:
+                id: face_listen
+                source: 'images/listening.gif'
+                opacity: 0  # Ẩn
+                anim_delay: 0.1
+                allow_stretch: True
+                keep_ratio: True
+
+            # 3. Ảnh nói (Mặc định ẩn)
+            Image:
+                id: face_talk
+                source: 'images/talking.gif'
+                opacity: 0  # Ẩn
+                anim_delay: 0.1
+                allow_stretch: True
+                keep_ratio: True
 
         # --- LỚP 3: KHUNG CHAT STREAM (Bên phải) ---
         BoxLayout:

@@ -31,8 +31,12 @@ class AIService:
         except Exception as e:
             print(f"Lỗi khởi tạo Pygame Mixer: {e}")
 
-    def speak(self, text):
-        """Chuyển văn bản thành giọng nói và phát bằng Pygame (Dùng RAM)"""
+    # --- Đã sửa đổi: Thêm tham số on_play_callback ---
+    def speak(self, text, on_play_callback=None):
+        """
+        Chuyển văn bản thành giọng nói.
+        on_play_callback: Là một hàm sẽ được gọi NGAY KHI âm thanh bắt đầu phát.
+        """
         if not text:
             return
 
@@ -42,23 +46,28 @@ class AIService:
             # Bật cờ đang nói để ngắt mic
             self.is_speaking = True
             
-            # 1. Gọi API và lấy dữ liệu âm thanh trực tiếp (Binary)
-            # Không dùng stream_to_file nữa mà lấy content
+            # 1. Gọi API (Giai đoạn này mất 1-3 giây, mặt vẫn nên đứng yên)
             response = self.client.audio.speech.create(
                 model="tts-1",
                 voice="alloy",
                 input=text
             )
             
-            # 2. Chuyển dữ liệu Binary vào RAM (tạo file ảo)
+            # 2. Chuyển dữ liệu Binary vào RAM
             audio_data = io.BytesIO(response.content)
 
-            # 3. Phát âm thanh từ RAM
+            # 3. Nạp âm thanh vào Pygame
             if not pygame.mixer.get_init():
                 pygame.mixer.init()
                 
-            # Pygame có thể đọc file từ RAM y hệt như file thật
             pygame.mixer.music.load(audio_data)
+
+            # --- [QUAN TRỌNG] ĐỒNG BỘ HÓA TẠI ĐÂY ---
+            # Nhạc đã tải xong, chuẩn bị phát -> Mới bắt đầu đổi mặt sang "talk"
+            if on_play_callback:
+                on_play_callback()
+            # ----------------------------------------
+
             pygame.mixer.music.play()
 
             # Chờ phát xong
@@ -74,7 +83,6 @@ class AIService:
         finally:
             # Tắt cờ để Mic nghe lại
             self.is_speaking = False
-            # KHÔNG CẦN os.remove VÌ KHÔNG CÓ FILE NÀO ĐƯỢC TẠO RA TRÊN Ổ CỨNG
 
     def search_google_law(self, query):
         """Hàm này gọi Google API để tìm kiếm thông tin"""
