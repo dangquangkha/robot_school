@@ -167,7 +167,7 @@ class GameListPopup(Popup):
         callback(game_name)
 
 class MainScreen(Screen):
-    chat_font_size = NumericProperty(50)  # Giá trị mặc định
+    chat_font_size = NumericProperty(60)  # Giá trị mặc định
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
