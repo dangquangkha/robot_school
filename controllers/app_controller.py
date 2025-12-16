@@ -282,8 +282,8 @@ class MainScreen(Screen):
             # Câu chào bạn muốn Robot nói
             greeting_text = "Xin chào các bạn! Các bạn muốn chơi gì nào?"
             
-            # Cập nhật chữ lên màn hình (để khớp với lời nói)
-            self.ids.chat_log.text = f"Bot: {greeting_text}"
+            # --- SỬA THÀNH: Gọi hàm update_chat_log ---
+            self.update_chat_log(f"Bot: {greeting_text}")
             
             # Gọi hàm nói (chạy trong luồng riêng để không đơ ứng dụng)
             threading.Thread(target=self.ai_service.speak, args=(greeting_text,)).start()
