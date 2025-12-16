@@ -105,7 +105,22 @@ ScreenManager:
             on_release: 
                 root.manager.transition.direction = 'left'
                 root.manager.current = "chat_screen"
+        # --- (THÊM ĐOẠN NÀY) Tạo khoảng cách nhỏ ---
+        Widget:
+            size_hint_y: None
+            height: 20 
 
+        # --- (THÊM ĐOẠN NÀY) Nút Thoát ---
+        KiddyButton:
+            text: "THOÁT ỨNG DỤNG"
+            size_hint: 0.8, None
+            height: 90
+            pos_hint: {'center_x': 0.5}
+            b_color: (0.4, 0.4, 0.4, 1) # Màu xám đậm (hoặc bạn có thể chọn màu đỏ)
+            font_size: 30
+            # Lệnh quan trọng: app.stop() sẽ đóng cửa sổ ngay lập tức
+            on_release: app.stop()
+            
         Widget:
             size_hint_y: 0.3
 
@@ -188,16 +203,16 @@ ScreenManager:
                 id: chat_scroller
                 size_hint_y: 1
                 
-                Label:
-                    id: chat_log
-                    text: "Hệ thống: Đã kết nối..."
-                    font_size: root.chat_font_size
-                    color: 1, 1, 1, 1 # Chữ trắng
+                effect_cls: "ScrollEffect" # Hiệu ứng cuộn mượt hơn
+                
+                # THAY ĐỔI: Dùng GridLayout để chứa nhiều Label con
+                GridLayout:
+                    id: chat_list
+                    cols: 1
                     size_hint_y: None
-                    height: self.texture_size[1]
-                    text_size: self.width, None
-                    valign: 'bottom'
-                    markup: True
+                    height: self.minimum_height # Tự động giãn chiều cao theo nội dung con
+                    padding: [10, 10]
+                    spacing: 15 # Khoảng cách giữa các tin nhắn
 
             # Nút bấm (Thu gọn)
             BoxLayout:

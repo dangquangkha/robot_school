@@ -228,21 +228,47 @@ class MainScreen(Screen):
         self.ids.btn_voice.text = "Nói (Voice)"
         self.ids.btn_voice.b_color = [1, 0.4, 0.4, 1] # Trả về màu cũ
         
+    # --- CẬP NHẬT HÀM NÀY ---
     def update_chat_log(self, message):
-        # Cập nhật UI an toàn từ luồng khác
-        self.ids.chat_log.text += f"\n\n{message}"
+        # 1. Tạo một Label mới cho tin nhắn này
+        from kivy.uix.label import Label # Import Label
+        
+        # Tính toán màu sắc: Nếu là "Bot:" hoặc "Hệ thống:" thì màu khác, "Bạn:" thì màu khác
+        msg_color = [1, 1, 1, 1] # Mặc định trắng
+        if message.startswith("Bạn:"):
+            msg_color = [1, 0.9, 0.4, 1] # Màu vàng nhạt cho người dùng
+        elif message.startswith("Lỗi"):
+            msg_color = [1, 0.4, 0.4, 1] # Màu đỏ cho lỗi
+
+        lbl = Label(
+            text=message,
+            size_hint_y=None,
+            color=msg_color,
+            markup=True,
+            font_size=self.chat_font_size
+        )
+        
+        # Mẹo: Để Label tự giãn chiều cao theo nội dung text
+        lbl.bind(texture_size=lambda instance, value: setattr(instance, 'height', value[1]))
+        lbl.text_size = (self.ids.chat_list.width, None) # Ép chiều ngang bằng khung chat
+        
+        # 2. Thêm Label vào GridLayout (id: chat_list)
+        self.ids.chat_list.add_widget(lbl)
+        
+        # 3. Giới hạn lịch sử để tiết kiệm RAM (Chỉ giữ 50 tin nhắn cuối)
+        if len(self.ids.chat_list.children) > 50:
+            # Xóa tin nhắn cũ nhất (Kivy lưu children theo thứ tự đảo ngược, index 0 là mới nhất)
+            # Nên ta xóa phần tử cuối danh sách children
+            self.ids.chat_list.remove_widget(self.ids.chat_list.children[-1])
+
+        # 4. Cuộn xuống dưới cùng
         Clock.schedule_once(self.scroll_to_bottom, 0.1)
-    
+
     def scroll_to_bottom(self, dt):
         try:
-            # In ra danh sách tất cả ID mà Python tìm thấy
-            print(f"DEBUG IDS: {self.ids.keys()}") 
-            
             if 'chat_scroller' in self.ids:
+                # scroll_y = 0 nghĩa là đáy, 1 là đỉnh
                 self.ids.chat_scroller.scroll_y = 0
-            else:
-                print("⚠️ CẢNH BÁO: Không tìm thấy 'chat_scroller' trong danh sách ID trên!")
-                
         except Exception as e:
             print(f"Lỗi cuộn trang: {e}")
 
